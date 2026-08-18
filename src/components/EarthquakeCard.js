@@ -1,15 +1,18 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { calculateDistance } from "../utils/distance";
 import { getFlag } from "../utils/flag";
+import { translateRegion } from "../utils/regionTranslate";
 import { COLORS, getMagColor } from "../theme";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export default function EarthquakeCard({ item, userLocation, onPress }) {
+  const { language, t } = useLanguage();
   const eqLat = item.geometry.coordinates[1];
   const eqLon = item.geometry.coordinates[0];
   const mag = item.properties.mag;
 
   let hasLocation = false;
-  let distanceText = "Vị trí của bạn chưa xác định";
+  let distanceText = t("locationUnknown");
   if (userLocation) {
     hasLocation = true;
     const distance = calculateDistance(
@@ -18,24 +21,25 @@ export default function EarthquakeCard({ item, userLocation, onPress }) {
       eqLat,
       eqLon,
     );
-    distanceText = `Cách bạn ${distance} km`;
+    distanceText = t("distanceFromYouCard", { distance });
   }
 
-  const regionName =
+  const rawRegion =
     item.properties.flynn_region ||
     item.properties.place ||
-    "Không rõ khu vực";
+    t("unknownRegion");
+  const regionName = translateRegion(rawRegion, language);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.badge, { backgroundColor: getMagColor(mag) }]}>
         <Text style={styles.badgeValue}>{mag}</Text>
-        <Text style={styles.badgeLabel}>Richter</Text>
+        <Text style={styles.badgeLabel}>{t("richter")}</Text>
       </View>
 
       <View style={styles.info}>
         <Text style={styles.region} numberOfLines={2}>
-          <Text style={styles.flag}>{getFlag(regionName)}</Text> {regionName}
+          <Text style={styles.flag}>{getFlag(rawRegion)}</Text> {regionName}
         </Text>
         <Text
           style={[styles.distance, !hasLocation && styles.distanceMuted]}
