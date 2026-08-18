@@ -10,22 +10,25 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import EarthquakeCard from "../components/EarthquakeCard";
+import LanguageSelector from "../components/LanguageSelector";
+import { useLanguage } from "../i18n/LanguageContext";
 import { COLORS } from "../theme";
 
 export default function HomeScreen({ navigation }) {
+  const { language, t } = useLanguage();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    navigation.setOptions({ title: t("homeTitle") });
+  }, [language]);
   const [userLocation, setUserLocation] = useState(null);
 
-  // Khối 1: Xin quyền GPS khi vừa mở app
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Cảnh báo",
-          "Bạn cần cấp quyền vị trí để ứng dụng tính khoảng cách!",
-        );
+        Alert.alert(t("alertPermissionTitle"), t("alertPermissionMsg"));
         return;
       }
 
@@ -34,7 +37,6 @@ export default function HomeScreen({ navigation }) {
     })();
   }, []);
 
-  // Khối 2: Gọi API
   useEffect(() => {
     const fetchEarthquakes = () => {
       fetch(
@@ -61,18 +63,18 @@ export default function HomeScreen({ navigation }) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Đang tải dữ liệu động đất...</Text>
+        <Text style={styles.loadingText}>{t("loadingData")}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <LanguageSelector />
+
       <View style={styles.banner}>
-        <Text style={styles.bannerTitle}>Cảnh báo động đất</Text>
-        <Text style={styles.bannerSubtitle}>
-          Nguồn EMSC • Cập nhật mỗi phút
-        </Text>
+        <Text style={styles.bannerTitle}>{t("bannerTitle")}</Text>
+        <Text style={styles.bannerSubtitle}>{t("bannerSubtitle")}</Text>
       </View>
 
       <View style={styles.buttonRow}>
@@ -85,7 +87,7 @@ export default function HomeScreen({ navigation }) {
             })
           }
         >
-          <Text style={styles.buttonText}>🗺️ Bản đồ tâm chấn</Text>
+          <Text style={styles.buttonText}>{t("btnMap")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -94,12 +96,13 @@ export default function HomeScreen({ navigation }) {
             navigation.navigate("Search", { userLocation: userLocation })
           }
         >
-          <Text style={styles.buttonTextSecondary}>🔍 Tra cứu lịch sử</Text>
+          <Text style={styles.buttonTextSecondary}>{t("btnSearch")}</Text>
         </TouchableOpacity>
       </View>
 
       <FlatList
         data={data}
+        key={`${language}-${data.length}`}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 20 }}
         renderItem={({ item }) => (

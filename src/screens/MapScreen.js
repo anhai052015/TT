@@ -1,9 +1,18 @@
+import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { calculateDistance } from "../utils/distance";
+import { useLanguage } from "../i18n/LanguageContext";
+import { translateRegion } from "../utils/regionTranslate";
+import { getFlag } from "../utils/flag";
 
 export default function MapScreen({ route, navigation }) {
-  // Bổ sung thêm biến selectedEvent để nhận tọa độ vừa gửi sang
+  const { language, t } = useLanguage();
+
+  useEffect(() => {
+    navigation.setOptions({ title: t("mapTitle") });
+  }, [language]);
+
   const { earthquakeList, userLocation, selectedEvent } = route.params || {
     earthquakeList: [],
     userLocation: null,
@@ -15,12 +24,9 @@ export default function MapScreen({ route, navigation }) {
       <MapView
         style={styles.map}
         toolbarEnabled={false}
-        // Thay initialRegion bằng region để bản đồ tự động di chuyển khi dữ liệu thay đổi
         region={{
-          // Nếu có selectedEvent thì lấy tọa độ đó, không thì để 20.0 (bao quát)
           latitude: selectedEvent ? selectedEvent.latitude : 20.0,
           longitude: selectedEvent ? selectedEvent.longitude : 0.0,
-          // Nếu có selectedEvent thì Zoom gần lại (5.0), không thì Zoom xa (100.0)
           latitudeDelta: selectedEvent ? 5.0 : 100.0,
           longitudeDelta: selectedEvent ? 5.0 : 100.0,
         }}
@@ -29,7 +35,7 @@ export default function MapScreen({ route, navigation }) {
           const eqLon = eq.geometry.coordinates[0];
           const eqLat = eq.geometry.coordinates[1];
 
-          let distanceText = "Đang tính khoảng cách...";
+          let distanceText = t("calculatingDistance");
           if (userLocation) {
             const distance = calculateDistance(
               userLocation.latitude,
@@ -37,16 +43,20 @@ export default function MapScreen({ route, navigation }) {
               eqLat,
               eqLon,
             );
-            distanceText = `Cách bạn: ${distance} km`;
+            distanceText = t("distanceFromYou", { distance });
           }
+
+          const rawRegion = eq.properties.flynn_region || eq.properties.place || "";
+          const regionName = translateRegion(rawRegion, language);
+          const flag = getFlag(rawRegion);
 
           return (
             <Marker
-              key={eq.id}
+              key={`${eq.id}-${language}`}
               coordinate={{ latitude: eqLat, longitude: eqLon }}
               pinColor="red"
-              title={`Độ lớn: ${eq.properties.mag} Richter`}
-              description={`${distanceText} - Bấm xem chi tiết >`}
+              title={`${flag} ${regionName}`}
+              description={`${t("magnitudeLabel", { mag: eq.properties.mag })} - ${distanceText} - ${t("tapForDetail")}`}
               onCalloutPress={() =>
                 navigation.navigate("Detail", {
                   earthquakeData: eq,

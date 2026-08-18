@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,12 +11,17 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import EarthquakeCard from "../components/EarthquakeCard";
+import { useLanguage } from "../i18n/LanguageContext";
 import { COLORS } from "../theme";
 
 export default function SearchScreen({ route, navigation }) {
+  const { language, t } = useLanguage();
   const { userLocation } = route.params || {};
 
-  // Trạng thái lưu trữ bộ lọc (Test thử từ năm 1970)
+  useEffect(() => {
+    navigation.setOptions({ title: t("searchTitle") });
+  }, [language]);
+
   const [startDate, setStartDate] = useState(new Date("1970-01-01"));
   const [endDate, setEndDate] = useState(new Date("1970-12-31"));
   const [minMag, setMinMag] = useState("5.0");
@@ -36,18 +41,16 @@ export default function SearchScreen({ route, navigation }) {
     const startStr = startDate.toISOString().split("T")[0];
     const endStr = endDate.toISOString().split("T")[0];
 
-    // ĐÃ ĐỔI SANG API CỦA USGS (Hỗ trợ dữ liệu từ 1900s)
     const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startStr}&endtime=${endStr}&minmagnitude=${minMag}&limit=50`;
 
     fetch(url)
       .then((response) => {
         if (!response.ok) {
-          throw new Error("Lỗi từ máy chủ USGS");
+          throw new Error("USGS server error");
         }
         return response.json();
       })
       .then((json) => {
-        // USGS trả về mảng features rỗng nếu không có dữ liệu, không bị lỗi 204 như EMSC
         setData(json.features || []);
         setLoading(false);
       })
@@ -60,11 +63,10 @@ export default function SearchScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* KHU VỰC BỘ LỌC */}
       <View style={styles.filterCard}>
-        <Text style={styles.filterTitle}>Bộ lọc tra cứu</Text>
+        <Text style={styles.filterTitle}>{t("filterTitle")}</Text>
 
-        <Text style={styles.label}>Từ ngày</Text>
+        <Text style={styles.label}>{t("fromDate")}</Text>
         <TouchableOpacity
           style={styles.inputBox}
           onPress={() => setShowStart(true)}
@@ -83,7 +85,7 @@ export default function SearchScreen({ route, navigation }) {
           />
         )}
 
-        <Text style={styles.label}>Đến ngày</Text>
+        <Text style={styles.label}>{t("toDate")}</Text>
         <TouchableOpacity
           style={styles.inputBox}
           onPress={() => setShowEnd(true)}
@@ -102,7 +104,7 @@ export default function SearchScreen({ route, navigation }) {
           />
         )}
 
-        <Text style={styles.label}>Độ lớn tối thiểu (Richter)</Text>
+        <Text style={styles.label}>{t("minMagnitude")}</Text>
         <View style={styles.inputBox}>
           <Text style={styles.inputText}>📊 </Text>
           <TextInput
@@ -110,17 +112,16 @@ export default function SearchScreen({ route, navigation }) {
             keyboardType="numeric"
             value={minMag}
             onChangeText={setMinMag}
-            placeholder="vd: 5.0"
+            placeholder={t("placeholderMag")}
             placeholderTextColor={COLORS.textMuted}
           />
         </View>
 
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Text style={styles.searchButtonText}>Tìm kiếm</Text>
+          <Text style={styles.searchButtonText}>{t("searchBtn")}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* HIỂN THỊ KẾT QUẢ */}
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -128,10 +129,11 @@ export default function SearchScreen({ route, navigation }) {
           style={{ marginTop: 24 }}
         />
       ) : hasSearched && data.length === 0 ? (
-        <Text style={styles.noData}>Không tìm thấy dữ liệu phù hợp.</Text>
+        <Text style={styles.noData}>{t("noData")}</Text>
       ) : (
         <FlatList
           data={data}
+          key={`${language}-${data.length}`}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingTop: 12, paddingBottom: 20 }}
           renderItem={({ item }) => (

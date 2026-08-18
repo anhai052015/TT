@@ -1,16 +1,23 @@
+import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { getFlag } from "../utils/flag";
+import { translateRegion } from "../utils/regionTranslate";
 import { COLORS, getMagColor } from "../theme";
+import { useLanguage } from "../i18n/LanguageContext";
 
-export default function DetailScreen({ route }) {
-  // Nhận dữ liệu truyền sang từ HomeScreen hoặc SearchScreen
+export default function DetailScreen({ route, navigation }) {
+  const { language, t } = useLanguage();
   const { earthquakeData, distance } = route.params;
 
-  // Ưu tiên dùng flynn_region (EMSC), không có thì lấy place (USGS)
-  const regionName =
+  useEffect(() => {
+    navigation.setOptions({ title: t("detailTitle") });
+  }, [language]);
+
+  const rawRegion =
     earthquakeData.properties.flynn_region ||
     earthquakeData.properties.place ||
-    "Không rõ khu vực";
+    t("unknownRegion");
+  const regionName = translateRegion(rawRegion, language);
 
   const mag = earthquakeData.properties.mag;
   const magColor = getMagColor(mag);
@@ -18,38 +25,38 @@ export default function DetailScreen({ route }) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Thông số chi tiết</Text>
+        <Text style={styles.title}>{t("detailParams")}</Text>
 
         <View style={styles.header}>
           <View style={[styles.badge, { backgroundColor: magColor }]}>
             <Text style={styles.badgeValue}>{mag}</Text>
-            <Text style={styles.badgeLabel}>Richter</Text>
+            <Text style={styles.badgeLabel}>{t("richter")}</Text>
           </View>
           <Text style={styles.region} numberOfLines={3}>
-            <Text style={styles.flag}>{getFlag(regionName)}</Text> {regionName}
+            <Text style={styles.flag}>{getFlag(rawRegion)}</Text> {regionName}
           </Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.row}>
-          <Text style={styles.label}>Độ sâu tâm chấn</Text>
+          <Text style={styles.label}>{t("depthLabel")}</Text>
           <Text style={styles.value}>
             {earthquakeData.geometry.coordinates[2]} km
           </Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>Khoảng cách</Text>
+          <Text style={styles.label}>{t("distanceLabel")}</Text>
           <Text style={[styles.value, styles.highlight]}>{distance}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>Thời gian</Text>
+          <Text style={styles.label}>{t("timeLabel")}</Text>
           <Text style={styles.value}>
             {new Date(earthquakeData.properties.time).toLocaleString()}
           </Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>Mã sự kiện</Text>
+          <Text style={styles.label}>{t("eventIdLabel")}</Text>
           <Text style={styles.value} numberOfLines={1}>
             {earthquakeData.id}
           </Text>
